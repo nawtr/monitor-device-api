@@ -38,10 +38,18 @@ async def handle_present_video(data: PresentationForm):
 async def handle_download_video_by_url(video: VideoForm, background_tasks: BackgroundTasks):
     # Download url from link
     background_tasks.add_task(
-        download_from_url, video.url, f"{video.name}.{video.mimetype}"
+        download_from_url, video.url, f"videos/{video.name}.{video.mimetype}"
     )
 
     return {"message": "Download video task sent in the background"}
+
+
+@app.get('/api/videos')
+async def handle_get_videos():
+    return {
+        "message": "OK",
+        "videos": os.listdir('videos')
+    }
 
 
 @app.get('/api/mac-address')
