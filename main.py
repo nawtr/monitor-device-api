@@ -1,3 +1,4 @@
+from uuid import getnode as get_mac
 import requests
 import os
 from urllib.request import urlopen
@@ -30,7 +31,7 @@ async def handle_present_video(data: PresentationForm):
     # Do something with present video
 
     return {
-        "message": "OK"
+        "status": "OK"
     }
 
 
@@ -41,21 +42,33 @@ async def handle_download_video_by_url(video: VideoForm, background_tasks: Backg
         download_from_url, video.url, f"videos/{video.name}.{video.mimetype}"
     )
 
-    return {"message": "Download video task sent in the background"}
+    return {
+        "status": "OK",
+        "message": "Download video task sent in the background"
+    }
 
 
 @app.get('/api/videos')
 async def handle_get_videos():
     return {
-        "message": "OK",
-        "videos": os.listdir('videos')
+        "status": "OK",
+        "data": {
+            "videos": os.listdir('videos')
+        }
     }
 
 
 @app.get('/api/mac-address')
 async def handle_get_mac_address():
+    mac = get_mac()
+    h = iter(hex(mac)[2:].zfill(12))
+    mac_address = ":".join(i + next(h) for i in h)
     return {
-        'mac_address': 'XXX-XXXX-XXXX-XXX'
+        "status": "OK",
+        "data": {
+            'mac_address': mac_address.upper()
+        },
+        "message": None
     }
 
 
