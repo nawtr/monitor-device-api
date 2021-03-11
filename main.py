@@ -10,19 +10,25 @@ from pydantic import BaseModel, HttpUrl
 app = FastAPI()
 
 
-class PresentationForm(BaseModel):
-    video_name: str
+class Video(BaseModel):
+    name: str
 
 
-class VideoForm(BaseModel):
+class VideoDownload(BaseModel):
     url: HttpUrl
     name: str
     mimetype: str
 
 
-@app.post('/api/presentation')
-async def handle_present_video(data: PresentationForm):
-    if not data.video_name:
+@app.on_event("startup")
+def setup_env():
+    if not os.path.exists('videos'):
+        os.mkdir('videos')
+
+
+@app.post('/api/present')
+async def handle_present_video(data: Video):
+    if not data.name:
         raise HTTPException(
             status_code=400,
             detail="Video name is required field"
@@ -36,8 +42,7 @@ async def handle_present_video(data: PresentationForm):
 
 
 @app.post('/api/download-video')
-async def handle_download_video_by_url(video: VideoForm, background_tasks: BackgroundTasks):
-    # Download url from link
+async def handle_download_video_by_url(video: VideoDownload, background_tasks: BackgroundTasks):
     background_tasks.add_task(
         download_from_url, video.url, f"videos/{video.name}.{video.mimetype}"
     )
@@ -72,6 +77,22 @@ async def handle_get_mac_address():
     }
 
 
+@app.delete('/api/delete-video')
+async def handle_delete_video(data: Video):
+    filepath = f"videos/{data.name}"
+    if not os.path.exists(filepath):
+        raise HTTPException(
+            400,
+            detail=f"Video {data.name} does not exist"
+        )
+
+    os.remove(filepath)
+    return {
+        "status": "OK",
+        "message": f"Video {data.name} is deleted"
+    }
+
+
 def download_from_url(url, dst):
     """
     @param: url to download file
@@ -85,7 +106,7 @@ def download_from_url(url, dst):
     if first_byte >= file_size:
         return file_size
     header = {"Range": "bytes=%s-%s" % (first_byte, file_size)}
-    pbar = tqdm(
+    process_bar = tqdm(
         total=file_size, initial=first_byte,
         unit='B', unit_scale=True, desc=url.split('/')[-1])
     req = requests.get(url, headers=header, stream=True)
@@ -93,6 +114,6 @@ def download_from_url(url, dst):
         for chunk in req.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
-                pbar.update(1024)
-    pbar.close()
+                process_bar.update(1024)
+    process_bar.close()
     return file_size

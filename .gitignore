@@ -138,3 +138,4 @@ dmypy.json
 cython_debug/
 .vscode
 *.mp4
+.idea
