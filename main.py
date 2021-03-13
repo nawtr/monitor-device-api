@@ -1,12 +1,13 @@
-from uuid import getnode as get_mac
-import requests
 import os
+import requests
+import subprocess
+import time
+from uuid import getnode as get_mac
 from urllib.request import urlopen
 from tqdm import tqdm
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, HttpUrl
-import subprocess
 
 app = FastAPI()
 
@@ -29,14 +30,16 @@ def setup_env():
 
 @app.post('/api/present')
 async def handle_present_video(data: Video):
-    if not data.name:
+    video_path = f"{os.getcwd()}videos/{data.name}"
+    if not os.path.exists(video_path):
         raise HTTPException(
-            status_code=400,
-            detail="Video name is required field"
+            422,
+            detail=f"Video {data.name} does not exist"
         )
 
-    # Do something with present video
-
+    subprocess.Popen(args=["killall", "omxplayer.bin"])
+    time.sleep(0.1)
+    subprocess.Popen(args=["omxplayer", "--loop", video_path])
     return {
         "status": "OK"
     }
@@ -80,10 +83,10 @@ async def handle_get_mac_address():
 
 @app.delete('/api/delete-video')
 async def handle_delete_video(data: Video):
-    filepath = f"videos/{data.name}"
+    filepath = f"{os.getcwd()}/videos/{data.name}"
     if not os.path.exists(filepath):
         raise HTTPException(
-            400,
+            422,
             detail=f"Video {data.name} does not exist"
         )
 
