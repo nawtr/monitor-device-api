@@ -6,6 +6,7 @@ from tqdm import tqdm
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, HttpUrl
+import subprocess
 
 app = FastAPI()
 
